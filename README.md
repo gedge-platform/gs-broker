@@ -1,4 +1,4 @@
-# gedge-message-broker
+# gs-broker
 
 ### Overview
 
