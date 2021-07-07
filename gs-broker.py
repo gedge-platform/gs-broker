@@ -10,10 +10,10 @@ if sys.version_info >= (3, 0):
 else:
     from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
-from pb.fxgateway_pb2
-from pb.fxgateway_pb2_grpc
+from pb.gsgateway_pb2
+from pb.gsgateway_pb2_grpc
 
-# define variables
+# define
 TOPIC_NAME = "gRPC"
 GATEWAY = "[GW_SERVER_ADDRESS]" # "10.0.0.183:31113"
 GATEWAY_IP = "[GW_SERVER_IP]" # "10.0.0.183"
@@ -59,12 +59,12 @@ def MQTT_Receiver():
     def on_connect(client, userdata, flags, rc):
         print("Using gateway {} and topic {}".format(GATEWAY, TOPIC_NAME))
         client.subscribe(TOPIC_NAME)
-    # process received Messaage from openfx gateway 
+
     def on_message(client, userdata, msg):
         # gRPC 
         channel = grpc.insecure_channel(GATEWAY)
-        stub = pb.fxgateway_pb2_grpc.FxGatewayStub(channel)
-        servicerequest = pb.fxgateway_pb2.InvokeServiceRequest(Service=sys.argv[1], Input=str(msg.payload.decode("utf-8")))
+        stub = pb.gsgateway_pb2_grpc.GsGatewayStub(channel)
+        servicerequest = pb.gsgateway_pb2.InvokeServiceRequest(Service=sys.argv[1], Input=str(msg.payload.decode("utf-8")))
         r = stub.Invoke(servicerequest)
         print(r.Msg)
     client.on_connect = on_connect
