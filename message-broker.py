@@ -5,18 +5,19 @@ import sys
 import paho.mqtt.client as mqtt
 import multiprocessing
 import grpc
-import fxgateway_pb2 
-import fxgateway_pb2_grpc
 if sys.version_info >= (3, 0):
     from http.server import BaseHTTPRequestHandler, HTTPServer
 else:
     from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
-# register topic + gateway address 
-topic_name = "gRPC"
-gateway = "[GW_SERVER_ADDRESS]" # "10.0.0.183:31113"
-gateway_ip = "[GW_SERVER_IP]" # "10.0.0.183"
-gateway_port =  "[GW_PORT_NUMBER]" # "31113"
+from pb.fxgateway_pb2
+from pb.fxgateway_pb2_grpc
+
+# define variables
+TOPIC_NAME = "gRPC"
+GATEWAY = "[GW_SERVER_ADDRESS]" # "10.0.0.183:31113"
+GATEWAY_IP = "[GW_SERVER_IP]" # "10.0.0.183"
+GATEWAY_PORT =  "[GW_PORT_NUMBER]" # "31113"
 
 if len(sys.argv) < 2:
     print("Input Command : python message-broker.py [SERVERLESS_FUNCTION_NAME]")
@@ -43,9 +44,9 @@ class MyHandler(BaseHTTPRequestHandler):
         s.send_header("Content-type", "text/html")
         s.end_headers()
 def HTTP_Receiver():
-    httpd = HTTPServer((gateway_ip, []), MyHandler)
+    httpd = HTTPServer((GATEWAY_IP, []), MyHandler)
     try:
-        print ("HTTP Server Start - " + gateway_ip + " : " + gateway_port)
+        print ("HTTP Server Start - " + GATEWAY_IP + " : " + GATEWAY_PORT)
         httpd.serve_forever()
     except KeyboardInterrupt:
         pass
@@ -53,17 +54,17 @@ def HTTP_Receiver():
 
 def MQTT_Receiver():
     client = mqtt.Client()
-    client.connect(gateway_ip)
+    client.connect(GATEWAY_IP)
     # register subscribe 
     def on_connect(client, userdata, flags, rc):
-        print("Using gateway {} and topic {}".format(gateway, topic_name))
-        client.subscribe(topic_name)
+        print("Using gateway {} and topic {}".format(GATEWAY, TOPIC_NAME))
+        client.subscribe(TOPIC_NAME)
     # process received Messaage from openfx gateway 
     def on_message(client, userdata, msg):
         # gRPC 
-        channel = grpc.insecure_channel(gateway)
-        stub = fxgateway_pb2_grpc.FxGatewayStub(channel)
-        servicerequest = fxgateway_pb2.InvokeServiceRequest(Service=sys.argv[1], Input=str(msg.payload.decode("utf-8")))
+        channel = grpc.insecure_channel(GATEWAY)
+        stub = pb.fxgateway_pb2_grpc.FxGatewayStub(channel)
+        servicerequest = pb.fxgateway_pb2.InvokeServiceRequest(Service=sys.argv[1], Input=str(msg.payload.decode("utf-8")))
         r = stub.Invoke(servicerequest)
         print(r.Msg)
     client.on_connect = on_connect
