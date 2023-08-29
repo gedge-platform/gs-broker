@@ -1,133 +1,75 @@
-package controller
+package model
 
 import (
-	"backend/model"
 	"backend/util"
-	"encoding/json"
+	"database/sql"
 	"fmt"
-	"io/ioutil"
-	"net/http"
+	"log"
+	"os"
 	"time"
 
-	"github.com/gorilla/mux"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/joho/godotenv"
 )
 
-type MessageInfo struct {
-	Msg       map[string]interface{} `json:"msg"`
-	Protocol  string                 `json:"protocol"`
-	Channel   string                 `json:"channel"`
-	ClientId  string                 `json:"clientId"`
-	Metadata  string                 `json:"metadata"`
-	ClusterId int                    `json:"clusterId"`
+var db *sql.DB
+
+func DBInit() *sql.DB {
+	env_err := godotenv.Load(".env")
+	util.FailOnError(env_err, ".env Load fail")
+	dbContainer := os.Getenv("DB_CONTAINER_IP")
+	dbDriver := os.Getenv("DB_DRIVER")
+	dbUser := os.Getenv("DB_USER")
+	dbPass := os.Getenv("DB_PASSWD")
+	dbName := os.Getenv("DB_NAME")
+	var db_err error
+	db, db_err = sql.Open(dbDriver, dbUser+":"+dbPass+"@tcp("+dbContainer+")/")
+	if db_err != nil {
+		panic(db_err.Error())
+	} else {
+		db.Exec("CREATE DATABASE IF NOT EXISTS " + dbName + ";")
+		db.Exec("USE Application;")
+		db.Query("CREATE TABLE IF NOT EXISTS Clusters (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255) NOT NULL, ip VARCHAR(255) NOT NULL, dashboardPort INT NOT NULL, apiPort INT NOT NULL, rpcPort INT NOT NULL, state BOOLEAN NOT NULL, date DATETIME NOT NULL, local BOOLEAN NOT NULL);")
+		db.Exec("USE Application;")
+		db.Query("CREATE TABLE IF NOT EXISTS Messages (id INT AUTO_INCREMENT PRIMARY KEY, protocol VARCHAR(255) NOT NULL, channel VARCHAR(255) NOT NULL, clientId VARCHAR(255) NOT NULL, metadata VARCHAR(255) NOT NULL, msg JSON, ClusterId INT, FOREIGN KEY (ClusterId) REFERENCES Clusters(id));")
+		log.Println("init db")
+	}
+	db.Close()
+
+	db, db_err = sql.Open(dbDriver, dbUser+":"+dbPass+"@tcp("+dbContainer+")/"+dbName)
+	if db_err != nil {
+		panic(db_err.Error())
+	} else {
+		db.Query("USE Application;")
+	}
+
+	return db
+}
+func AppInit() {
+	db := DBConn()
+	var count int
+	queryErr := db.QueryRow("SELECT COUNT(*) FROM Clusters").Scan(&count)
+	if queryErr != nil {
+		panic(queryErr.Error())
+	}
+
+	if count == 0 {
+		hostIp := os.Getenv("HOST_IP")
+		pingErr := util.CheckCondition(hostIp, 50000)
+		if pingErr != nil {
+			panic(pingErr.Error())
+		}
+		date := time.Now().Format("2006-01-02 15:04:05")
+		insert, dbInsterErr := db.Query("INSERT INTO Clusters (name, ip, dashboardPort, apiPort, rpcPort, state, date, local) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+			"Main Cluster", hostIp, 8080, 9090, 50000, true, date, true)
+		if dbInsterErr != nil {
+			fmt.Println(dbInsterErr)
+			panic(dbInsterErr.Error())
+		}
+		defer insert.Close()
+	}
 }
 
-func GetMessages(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
-
-	db := model.DBConn()
-
-	var messages []MessageInfo
-	rows, err := db.Query("SELECT protocol, channel, clientId, metadata ,msg FROM Messages WHERE ClusterId = ? ORDER BY id DESC", id)
-	if util.CheckHttpError(w, err, "Check DB") {
-		return
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var m MessageInfo
-		var msg []byte
-		err = rows.Scan(&m.Protocol, &m.Channel, &m.ClientId, &m.Metadata, &msg)
-		if util.CheckHttpError(w, err, "Check DB") {
-			return
-		}
-
-		err = json.Unmarshal(msg, &m.Msg)
-		if util.CheckHttpError(w, err, "JSON Unmarshal") {
-			return
-		}
-
-		messages = append(messages, m)
-	}
-	err = rows.Err()
-	if util.CheckHttpError(w, err, "Check DB") {
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(messages)
-}
-
-func SendMessage(w http.ResponseWriter, r *http.Request) {
-	body, err := ioutil.ReadAll(r.Body)
-	if util.CheckHttpError(w, err, "Check DB") {
-		return
-	}
-
-	var mInfo MessageInfo
-	err = json.Unmarshal(body, &mInfo)
-	if util.CheckHttpError(w, err, "Check DB") {
-		return
-	}
-
-	db := model.DBConn()
-	// defer db.Close()
-	rows, err := db.Query("SELECT id, name, ip, rpcPort, state, date FROM Clusters WHERE id = ?", mInfo.ClusterId)
-	if util.CheckHttpError(w, err, "Check DB") {
-		return
-	}
-	var c Cluster
-	for rows.Next() {
-		scanErr := rows.Scan(&c.ID, &c.Name, &c.IP, &c.RPCPort, &c.State, &c.Date)
-		if util.CheckHttpError(w, scanErr, "Check DB attribute") {
-			return
-		}
-		break
-	}
-	rows.Close()
-	jsonData, err := json.Marshal(mInfo.Msg)
-	if util.CheckHttpError(w, err, "Check JSON Message") {
-		return
-	}
-
-	switch mInfo.Protocol {
-	case "pub/sub":
-		err := pubMsg(c, mInfo, jsonData)
-		if util.CheckHttpError(w, err, "Check pub/sub request") {
-			return
-		}
-	case "queue":
-		err := queueMsg(c, mInfo, jsonData)
-		if util.CheckHttpError(w, err, "Check queue request") {
-			return
-		}
-	case "query":
-		err := queryMsg(c, mInfo, jsonData)
-		if util.CheckHttpError(w, err, "Check query request") {
-			return
-		}
-	case "command":
-		err := commandMsg(c, mInfo, jsonData)
-		if util.CheckHttpError(w, err, "Check command request") {
-			return
-		}
-	}
-
-	insert, dbInsterErr := db.Query("INSERT INTO Messages (protocol, channel, clientId, metadata, msg, ClusterId) VALUES (?, ?, ?, ?, ?, ?)",
-		mInfo.Protocol, mInfo.Channel, mInfo.ClientId, mInfo.Metadata, jsonData, mInfo.ClusterId)
-	if util.CheckHttpError(w, dbInsterErr, "Check data") {
-		return
-	}
-	defer insert.Close()
-	date := time.Now().Format("2006-01-02 15:04:05")
-	_, updateErr := db.Exec("UPDATE Clusters SET date = ? WHERE id = ?", date, c.ID)
-	if util.CheckHttpError(w, updateErr, "DB Update Failed") {
-		return
-	}
-	fmt.Fprintf(w, "Data Inserted Successfully")
-}
-
-func DeleteMessage(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(w)
-	fmt.Println(r)
-	fmt.Fprintln(w, "AddMultiClusterList!")
+func DBConn() *sql.DB {
+	return db
 }
