@@ -3,6 +3,7 @@ package controller
 import (
 	"backend/model"
 	"backend/util"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/kubemq-io/kubemq-go"
 )
 
 type MessageInfo struct {
@@ -133,17 +135,141 @@ func DeleteMessage(w http.ResponseWriter, r *http.Request) {
 }
 
 func pubMsg(c Cluster, mInfo MessageInfo, jsonData []byte) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	client, err := kubemq.NewClient(ctx,
+		kubemq.WithAddress(c.IP, c.RPCPort),
+		kubemq.WithClientId(mInfo.ClientId),
+		kubemq.WithTransportType(kubemq.TransportTypeGRPC))
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+	err = client.E().
+		SetId(mInfo.ClientId).
+		SetChannel(mInfo.Channel).
+		SetMetadata(mInfo.Metadata).
+		SetBody(jsonData).
+		Send(ctx)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 func queueMsg(c Cluster, mInfo MessageInfo, jsonData []byte) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	client, err := kubemq.NewClient(ctx,
+		kubemq.WithAddress(c.IP, c.RPCPort),
+		kubemq.WithClientId(mInfo.ClientId),
+		kubemq.WithTransportType(kubemq.TransportTypeGRPC))
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	_, err = client.NewQueueMessage().
+		SetId(mInfo.ClientId).
+		SetChannel(mInfo.Channel).
+		SetMetadata(mInfo.Metadata).
+		SetBody(jsonData).
+		Send(ctx)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 func queryMsg(c Cluster, mInfo MessageInfo, jsonData []byte) error {
+	ctx := context.Background()
+	client, err := kubemq.NewQueriesClient(ctx,
+		kubemq.WithAddress(c.IP, c.RPCPort),
+		kubemq.WithClientId(mInfo.ClientId),
+		kubemq.WithTransportType(kubemq.TransportTypeGRPC))
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	err = client.Subscribe(ctx, &kubemq.QueriesSubscription{
+		Channel:  mInfo.Channel,
+		ClientId: "Subscriber",
+	}, func(cmd *kubemq.QueryReceive, err error) {
+		if err != nil {
+			return
+		} else {
+			err := client.Response(ctx, kubemq.NewResponse().
+				SetRequestId(cmd.Id).
+				SetResponseTo(cmd.ResponseTo).
+				SetExecutedAt(time.Now()).
+				SetMetadata("this is a response").
+				SetBody([]byte("Created Query Channel")))
+			if err != nil {
+				return
+			}
+		}
+	})
+	if err != nil {
+		return err
+	}
+	time.Sleep(time.Second)
+	_, err = client.Send(ctx, kubemq.NewQuery().
+		SetId(mInfo.ClientId).
+		SetChannel(mInfo.Channel).
+		SetMetadata(mInfo.Metadata).
+		SetBody(jsonData).SetTimeout(time.Second*2))
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func commandMsg(c Cluster, mInfo MessageInfo, jsonData []byte) error {
+	ctx := context.Background()
+	client, err := kubemq.NewCommandsClient(ctx,
+		kubemq.WithAddress(c.IP, c.RPCPort),
+		kubemq.WithClientId(mInfo.ClientId),
+		kubemq.WithTransportType(kubemq.TransportTypeGRPC))
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	err = client.Subscribe(ctx, &kubemq.CommandsSubscription{
+		Channel:  mInfo.Channel,
+		ClientId: "Subscriber",
+	}, func(cmd *kubemq.CommandReceive, err error) {
+		if err != nil {
+			return
+		} else {
+			err := client.Response(ctx, kubemq.NewResponse().
+				SetRequestId(cmd.Id).
+				SetResponseTo(cmd.ResponseTo).
+				SetExecutedAt(time.Now()).
+				SetMetadata("this is a response").
+				SetBody([]byte("Created Query Channel")))
+			if err != nil {
+				return
+			}
+		}
+	})
+	if err != nil {
+		return err
+	}
+	time.Sleep(time.Second)
+	_, err = client.Send(ctx, kubemq.NewCommand().
+		SetId(mInfo.ClientId).
+		SetChannel(mInfo.Channel).
+		SetMetadata(mInfo.Metadata).
+		SetBody(jsonData).SetTimeout(time.Second*2))
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
