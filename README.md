@@ -6,7 +6,7 @@
 
 이 메시지 브로커는 6종의 통신 프로토콜 사용을 지원하며, 해당 프로토콜을 통해 IoT 디바이스 및 애플리케이션과 엣지 응용 서비스 사이의 실시간 통신이 가능하다. 지원하는 6종의 통신 프로토콜은 다음과 같다.
 
-- SMQP
+- AMQP
 - REST
 - MQTT
 - STOMP
@@ -144,3 +144,6 @@ docker-compose up --build
 4. `$ cd ..`
 5. `$ ./start.sh`
 6. localhost:3000 접속
+
+# Message Simulator (shooter)
+## update: 231004 16:40
