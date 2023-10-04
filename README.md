@@ -146,4 +146,4 @@ docker-compose up --build
 6. localhost:3000 접속
 
 # Message Simulator (shooter)
-## update: 231004 16:40
+## update: 231004 16:44
