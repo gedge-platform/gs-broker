@@ -37,16 +37,19 @@
 
 ## 디렉토리 구조
 
-프로젝트의 디렉토리 구조는 다음과 같다:
+프로젝트의 디렉토리 구조 및 기능은 다음과 같다:
 
-- `backend/`: go로 작성된 backend Rest API server 관련 코드가 포함된 디렉토리
+- `backend/`: go로 작성된 backend API server 관련 코드가 포함된 디렉토리
+  - KubeMQ에 프로토콜별 Channel 생성을 위한 API를 제공
 - `frontend/`: react web 서비스를 위한 코드가 포함된 디렉토리
+  - KubeMQ관리를 위한 KubeMQ Web과 KubeMQ에서 제공하는 프로토콜의 Channel 생성을 위한 UI를 제공
+  - 사용자는 Web에서 동작중인 KubeMQ-Community(KubeMQ Broker)의 정보(IP, Port...)를 입력하여 KubeMQ-Community와 연동 가능하며, backend API server에 요청하여 연동된 KubeMQ에 Channel을 생성 가능
 - `docker-compose.yaml`: backend, frontend, db, kubemq 컨테이너화 및 실행 자동화를 위한 docker-compose파일
 - `start.sh`: env 파일 설정 및 docker compose 자동화를 위한 스크립트 파일
 
 ### backend
 
-`backend` 디렉토리에는 다음과 같은 파일이 포함되어 있습니다.
+`backend` 디렉토리에는 다음과 같은 파일이 포함되어 있다.
 
 - controller/ : Web request를 처리하기 위한 코드가 포함된 디렉트로
 - model/ : DB 연결 및 쿼리를 위한 코드가 포함된 디렉토리
