@@ -1,22 +1,22 @@
 # gs-broker
 
-### Overview
+## Overview
 
 엣지 서비스 플랫폼인 'gedge-platform'에서 활용할 수 있는 엣지 응용 서비스들과  IoT 디바이스 간의 이종 프로토콜을 통합하여 중개할 수 있는 메시지 브로커이다. 
 
 이 메시지 브로커는 6종의 통신 프로토콜 사용을 지원하며, 해당 프로토콜을 통해 IoT 디바이스 및 애플리케이션과 엣지 응용 서비스 사이의 실시간 통신이 가능하다. 지원하는 6종의 통신 프로토콜은 다음과 같다.
 
-- SMQP
+- AMQP
 - REST
 - MQTT
 - STOMP
 - WEB_STOMP
 - WEB_MQTT
 
-
+## broker-server
 ### Architecture
 
-엣지 서비스 플랫폼에서 사용할 수 있는 메시지 브로커의 구조는 다음과 같다. 이는 MQTT 브로커의 개념을 확장시켜 이종 프로토콜 또한 지원할 수 있도록 구성되었다.
+엣지 서비스 플랫폼에서 사용할 수 있는 메시지 브로커 서버의 구조는 다음과 같으며 MQTT 브로커의 개념을 확장시켜 이종 프로토콜 또한 지원할 수 있도록 구성되었다.
 
 ![message-broker-architecture](https://user-images.githubusercontent.com/70132781/100324978-4bd5ac00-300b-11eb-87bd-eb0b787d040c.png)
 
@@ -25,17 +25,17 @@
 - Message Publication : 메시지를 발급하는 주체로, 엣지 서비스에 메시지를 전달하는 역할을 한다.
 
 
-# channel-creator
+## channel-creator
 ![image](https://github.com/jinsung-cho/KubeMQ-Web-Channel-Creator/assets/57334203/8936467c-8c64-4dcb-93e0-c8aa3180d719)
 - 로컬 네트워크에서 KubeMQ-Community의 실행 및 MQ, Message 관리를 위한 Frontend와 Backend의 자동화된 실행을 제공한다.
 - KubeMQ에 Channel 생성을 위한 다섯가지 메시지 프로토콜을 제공하고 메시지 전송으로 Channel을 생성할 수 있는 기능을 제공한다.
 - 원격의 접근 가능한 네트워크에서 동작중인 KubeMQ-Community를 등록한 뒤 Channel 생성 및 메시지 전송할 수 있는 관련 기능을 제공한다.
 
 
-## Requirements
+### Requirements
 - Docker Compose version 2.0.0 or higher
 
-## 디렉토리 구조
+### 디렉토리 구조
 
 프로젝트의 디렉토리 구조 및 기능은 다음과 같다:
 
