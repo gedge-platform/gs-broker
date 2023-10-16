@@ -153,5 +153,5 @@ docker-compose up --build
 5. `$ ./start.sh`
 6. localhost:3000 접속
 
-# Message Simulator (shooter)
-## update: 231004 16:44
+## Message Simulator
+gs-broker에서 지원하는 이종 프로토콜 별 메시지를 생성하여 메시지 브로커 서버로 테스트 데이터를 송신하는 응용 프로그램으로 `msg-simulator.exe` 를 실행하여 사용한다. 메시지 브로커 서버의 접속 ip 등의 설정 사항은 `config.json` 파일을 수정하여 사용할 수 있도록 구조화 하였다.
