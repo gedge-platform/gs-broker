@@ -18,7 +18,7 @@
 
 엣지 서비스 플랫폼에서 사용할 수 있는 메시지 브로커 서버의 구조는 다음과 같으며 MQTT 브로커의 개념을 확장시켜 이종 프로토콜 또한 지원할 수 있도록 구성되었다.
 
-![message-broker-architecture](https://user-images.githubusercontent.com/70132781/100324978-4bd5ac00-300b-11eb-87bd-eb0b787d040c.png)
+![broker-server-architecture](https://user-images.githubusercontent.com/70132781/100324978-4bd5ac00-300b-11eb-87bd-eb0b787d040c.png)
 
 - Message Subscription : 메시지를 구독하는 주체로, 다양한 디바이스에서부터 전달되는 6종의 프로토콜 메시지를 구독하는 역할을 한다.
 - Message Broker : 전달된 메시지를 gRPC 프로토콜로 변경해 주는 중간 역할을 한다.
@@ -26,7 +26,12 @@
 
 
 ## channel-creator
-![image](https://github.com/jinsung-cho/KubeMQ-Web-Channel-Creator/assets/57334203/8936467c-8c64-4dcb-93e0-c8aa3180d719)
+### Architecture
+
+엣지 서비스 플랫폼에서 사용할 수 있는 채널 크리에이터의 구조는 다음과 같으며 Message Queue를 로컬 클러스터뿐만 아니라 리모트 클러스터에서도 사용할 수 있으며 상호간 통신이 가능하도록 구성되었다.
+
+![channel-creator-architecture](https://github.com/gedge-platform/gs-broker/assets/61034163/b836cf71-6f03-4640-b99b-5dcd5b040eab)
+
 - 로컬 네트워크에서 KubeMQ-Community의 실행 및 MQ, Message 관리를 위한 Frontend와 Backend의 자동화된 실행을 제공한다.
 - KubeMQ에 Channel 생성을 위한 다섯가지 메시지 프로토콜을 제공하고 메시지 전송으로 Channel을 생성할 수 있는 기능을 제공한다.
 - 원격의 접근 가능한 네트워크에서 동작중인 KubeMQ-Community를 등록한 뒤 Channel 생성 및 메시지 전송할 수 있는 관련 기능을 제공한다.
