@@ -1,0 +1,16 @@
+{
+	"host": {
+		"ip_address": "",
+		"http_port": "",
+		"mqtt_port": ""
+	},
+	"user": {
+		"id": "",
+		"pw": "",
+		"vhost": ""
+	},
+	"service": {
+		"http_exchange": "",
+		"mqtt_topic": ""
+	}
+}
